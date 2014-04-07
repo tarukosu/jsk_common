@@ -42,10 +42,13 @@ namespace jsk_topic_tools
   
   void MUX::onInit()
   {
+    std::cout << "error" << std::endl;
     advertised_ = false;
+    ros::NodeHandle mux_nh("mux");
     ros::NodeHandle pnh = getPrivateNodeHandle();
     topics_ = readStringArray("topics", pnh);
     if (topics_.size() < 1) {
+      std::cout << "error" << std::endl;
       NODELET_FATAL("need to specify at least one topic in ~topics");
       return;
     }
@@ -56,10 +59,10 @@ namespace jsk_topic_tools
     // in our version, we never subscribe topic which are not selected.
 
     // service advertise: _select, select, add, list, delete
-    ss_select_ = pnh.advertiseService("select", &MUX::selectTopicCallback, this);
-    ss_add_ = pnh.advertiseService("add", &MUX::addTopicCallback, this);
-    ss_list_ = pnh.advertiseService("list", &MUX::listTopicCallback, this);
-    ss_del_ = pnh.advertiseService("delete", &MUX::deleteTopicCallback, this);
+    ss_select_ = mux_nh.advertiseService("select", &MUX::selectTopicCallback, this);
+    ss_add_ = mux_nh.advertiseService("add", &MUX::addTopicCallback, this);
+    ss_list_ = mux_nh.advertiseService("list", &MUX::listTopicCallback, this);
+    ss_del_ = mux_nh.advertiseService("delete", &MUX::deleteTopicCallback, this);
   }
 
   bool MUX::selectTopicCallback(topic_tools::MuxSelect::Request  &req,
