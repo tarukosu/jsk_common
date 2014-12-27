@@ -2,6 +2,32 @@
 Changelog for package jsk_tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.57 (2014-12-23)
+-------------------
+* add hardware id tp battery capacity
+* Contributors: Kei Okada
+
+1.0.56 (2014-12-17)
+-------------------
+* Use ping with 10 seconds timeout to check master aliveness
+* add battery full capacity summary script
+* Contributors: Ryohei Ueda, Yuto Inagaki
+
+1.0.55 (2014-12-09)
+-------------------
+* Add document about roscore_regardless.py
+* Check master is reachable before chcking master is alive
+* Merge pull request `#613 <https://github.com/jsk-ros-pkg/jsk_common/issues/613>`_ from k-okada/show_ip
+  show ROS_IP in prompt
+* Merge pull request `#612 <https://github.com/jsk-ros-pkg/jsk_common/issues/612>`_ from k-okada/rename_rossetrobot
+  rename rossetrobot -> rossetmaster
+* show ROS_IP in prompt
+* rename rossetrobot -> rossetmaster, keep rossetrobot for backword compatibility
+* add: zshrc.ros (Change emacs mode configuration: Shell-script -> shell-script)
+* add: zshrc.ros
+* fix prompt when rossetlocal is called.
+* Contributors: Ryohei Ueda, Kei Okada, Masaki Murooka, Kentaro Wada
+
 1.0.54 (2014-11-15)
 -------------------
 
@@ -249,4 +275,4 @@ Changelog for package jsk_tools
 * updated launch doc
 * updated launch doc
 * updated launch doc
-* Contributors: chen, k-okada, manabu, nozawa, rosen, y-tnaka, youhei
+* Contributors: nozawa, manabu, Kei Okada, youhei, rosen, chen, y-tnaka

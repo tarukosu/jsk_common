@@ -2,6 +2,18 @@
 Changelog for package dynamic_tf_publisher
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.57 (2014-12-23)
+-------------------
+
+1.0.56 (2014-12-17)
+-------------------
+
+1.0.55 (2014-12-09)
+-------------------
+* import empty srv
+* add pubish tf service
+* Contributors: Yusuke Furuta
+
 1.0.54 (2014-11-15)
 -------------------
 * Add tf publisher which can be reconfigured by dynamic_reconfigure
@@ -170,4 +182,4 @@ Changelog for package dynamic_tf_publisher
 * fix bag when assoc service called again
 * do not accept set_dynamic_tf service for assocd frames
 * mv jtalk and pddl to 3rdparty directory
-* Contributors: Kei Okada, furuta, k-okada, kazuto, manabu, ueda
+* Contributors: Ryohei Ueda, Kei Okada, manabu, Yusuke Furuta, kazuto

@@ -9,18 +9,8 @@ import sys
 import argparse
 import re
 import shutil
+from jsk_topic_tools.master_util import isMasterAlive
 
-def isMasterAlive():
-    """
-    return True if master alive and return False if
-    master is not alive
-    """
-    try:
-        master = rospy.get_master()
-        master.getSystemState()
-        return True
-    except:
-        return False
 
 def runROSBag(topics, size, save_dir):
     """

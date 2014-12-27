@@ -7,20 +7,9 @@ import subprocess
 import signal
 import os
 import sys
-
+import re
 global g_process_object
-
-def isMasterAlive():
-    """
-    return True if master alive and return False if
-    master is not alive
-    """
-    try:
-        master = rospy.get_master()
-        master.getSystemState()
-        return True
-    except:
-        return False
+from jsk_topic_tools.master_util import isMasterAlive
 
 def runProcess(cmds):
     global g_process_object
@@ -50,6 +39,8 @@ def main(cmds):
     previous_master_state = None
     while True:
         master_state = isMasterAlive()
+        if not master_state:
+            print "Master is dead..."
         if not master_state and previous_master_state:
             print "kill process"    
             killProcess()
