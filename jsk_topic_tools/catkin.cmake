@@ -57,6 +57,8 @@ jsk_topic_tools_nodelet(src/relay_nodelet.cpp
   "jsk_topic_tools/Relay" "relay")
 jsk_topic_tools_nodelet(src/block_nodelet.cpp
   "jsk_topic_tools/Block" "block")
+jsk_topic_tools_nodelet(src/snapshot_nodelet.cpp
+  "jsk_topic_tools/Snapshot" "snapshot")
 jsk_topic_tools_nodelet(src/hz_measure_nodelet.cpp
   "jsk_topic_tools/HzMeasure" "hz_measure")
 jsk_topic_tools_nodelet(src/vital_checker_nodelet.cpp
@@ -76,15 +78,17 @@ add_library(jsk_topic_tools SHARED
   src/counter.cpp)
   
 target_link_libraries(jsk_topic_tools ${catkin_LIBRARIES})
-add_rostest(test/test_topic_buffer.test)
-add_rostest(test/test_topic_buffer_close_wait.test)
-add_rostest(test/test_topic_buffer_fixed_rate.test)
-add_rostest(test/test_topic_buffer_fixed_rate_and_update_rate.test)
-add_rostest(test/test_topic_buffer_update_rate.test)
-add_rostest(test/test_lightweight_throttle.test)
-add_rostest(test/test_topic_compare.test)
-add_rostest(test/test_hz_measure.test)
-add_rostest(test/test_block.test)
+if (NOT $ENV{ROS_DISTRO} STREQUAL "indigo")
+  add_rostest(test/test_topic_buffer.test)
+  add_rostest(test/test_topic_buffer_close_wait.test)
+  add_rostest(test/test_topic_buffer_fixed_rate.test)
+  add_rostest(test/test_topic_buffer_fixed_rate_and_update_rate.test)
+  add_rostest(test/test_topic_buffer_update_rate.test)
+  add_rostest(test/test_lightweight_throttle.test)
+  add_rostest(test/test_topic_compare.test)
+  add_rostest(test/test_hz_measure.test)
+  add_rostest(test/test_block.test)
+endif(NOT $ENV{ROS_DISTRO} STREQUAL "indigo")
 
 install(TARGETS topic_buffer_server topic_buffer_client jsk_topic_tools
   ${jsk_topic_tools_nodelet_executable_names}

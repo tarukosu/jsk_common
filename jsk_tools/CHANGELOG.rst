@@ -2,6 +2,15 @@
 Changelog for package jsk_tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.58 (2015-01-07)
+-------------------
+* Add more user replacing rules
+* Reuse isMasterAlive function across scripts which
+  want to check master state
+* Add script to change contributors name in CHANGELOG.py
+* add roscore_check
+* Contributors: Ryohei Ueda, JSK Lab member
+
 1.0.57 (2014-12-23)
 -------------------
 * add hardware id tp battery capacity

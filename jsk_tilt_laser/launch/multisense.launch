@@ -2,43 +2,112 @@
   <arg name="ip_address" default="10.66.171.21" />
   <arg name="namespace"  default="multisense" />
   <arg name="mtu"        default="7200" />
+  <arg name="use_robot_description" default="true" />
 
-  <param name="robot_description"     
-         textfile="$(find multisense_description)/urdf/multisenseSL.urdf"/>
+  <group if="$(arg use_robot_description)"> <!-- original -->
+    <param name="robot_description"
+           textfile="$(find multisense_description)/urdf/multisenseSL.urdf"/>
+    <!-- Robot state publisher -->
+    <node pkg="robot_state_publisher" type="state_publisher" name="$(arg namespace)_state_publisher">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <remap from="joint_states" to="/$(arg namespace)/joint_states" />
+      <param name="tf_prefix" value="/$(arg namespace)" />
+    </node>
+    <!-- ROS Driver -->
+    <node pkg="multisense_ros" ns="$(arg namespace)" type="ros_driver" name="multisense_driver" output="screen">
+      <param name="sensor_ip"   value="$(arg ip_address)" />
+      <param name="sensor_mtu"  value="$(arg mtu)" />
+      <param name="tf_prefix"   value="/$(arg namespace)" />
+      <param name="use_organized_pointcloud" value="true"/>
+    </node>
+  </group>
 
-  <!-- Robot state publisher -->
-  <node pkg="robot_state_publisher" type="state_publisher" name="$(arg namespace)_state_publisher">
-    <param name="publish_frequency" type="double" value="50.0" />
-    <remap from="joint_states" to="/$(arg namespace)/joint_states" />
-    <param name="tf_prefix" value="/$(arg namespace)" />
-  </node>
-
-  <!-- ROS Driver -->
-   <node pkg="multisense_ros" ns="$(arg namespace)" type="ros_driver" name="multisense_driver" output="screen">
-     <param name="robot_description"     
-         textfile="$(find multisense_description)/urdf/multisenseSL.urdf"/>
-     <param name="sensor_ip"   value="$(arg ip_address)" />
-     <param name="sensor_mtu"  value="$(arg mtu)" />
-     <param name="tf_prefix"   value="/$(arg namespace)" />
-     <param name="use_organized_pointcloud" value="true"/>
-  </node>
+  <group unless="$(arg use_robot_description)" ns="$(arg namespace)">
+    <!-- using robot description under name space -->
+    <param name="robot_description"
+           textfile="$(find multisense_description)/urdf/multisenseSL.urdf"/>
+    <!-- Robot state publisher -->
+    <node pkg="robot_state_publisher" type="state_publisher" name="state_publisher">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="/$(arg namespace)" />
+    </node>
+    <!-- ROS Driver -->
+    <node pkg="multisense_ros" type="ros_driver" name="multisense_driver" output="screen">
+      <param name="sensor_ip"   value="$(arg ip_address)" />
+      <param name="sensor_mtu"  value="$(arg mtu)" />
+      <param name="tf_prefix"   value="/$(arg namespace)" />
+      <param name="use_organized_pointcloud" value="true"/>
+    </node>
+  </group>
 
    <!-- pointcloud pipeline -->
    <!-- run spindle -->
    <node pkg="dynamic_reconfigure" type="dynparam" name="set_multisense_spindle"
          args="set multisense motor_speed 1.57" />
-   <node pkg="jsk_tilt_laser" type="spin_laser_snapshotter"
-         output="screen"
-         name="multisense_laser_snapshotter">
-     <rosparam>
-       use_tf: true
-       negative_direction: true
+
+   <node name="tilt_scan_to_scan"
+         pkg="laser_filters" type="scan_to_scan_filter_chain"
+         output="screen">
+     <remap from="scan" to="/multisense/lidar_scan" />
+     <rosparam subst_value="true">
+       scan_filter_chain:
+       - name: shadows
+         type: laser_filters/ScanShadowsFilter
+         params:
+           min_angle: 0
+           max_angle: 170
+           neighbors: 5
+           window: 1
+       - name: dark_shadows
+         type: LaserScanIntensityFilter
+         params: 
+           lower_threshold: 100
+           upper_threshold: 10000
+           disp_histogram: 0
+       - name: range
+         type: laser_filters/LaserScanRangeFilter
+         params:
+           lower_threshold: 0.2 # 0.5
+           upper_threshold: 30
      </rosparam>
+     <remap from="scan_filtered" to="/multisense/lidar_scan_filtered" />
    </node>
+   <node name="tilt_scan_to_cloud"
+         pkg="laser_filters" type="scan_to_cloud_filter_chain"
+         output="screen">
+     <remap from="scan" to="/multisense/lidar_scan_filtered" />
+     <rosparam>
+       target_frame: multisense/spindle
+       high_fidelity: true
+     </rosparam>
+     <remap from="cloud_filtered" to="/multisense/lidar_scan_cloud_filtered" />
+   </node>
+   <node pkg="nodelet" type="nodelet" name="multisense_laser_manager"
+         args="manager" output="screen"/>
+   <node pkg="nodelet" type="nodelet"
+         name="tilt_laser_listener"
+         args="load jsk_pcl/TiltLaserListener multisense_laser_manager"
+         output="screen">
+     <remap from="~input" to="/$(arg namespace)/joint_states" />
+     <rosparam>
+       laser_type: infinite_spindle_half
+       joint_name: motor_joint
+       use_laser_assembler: true
+     </rosparam>
+     <remap from="~assemble_scans2" to="/assemble_scans2" />
+   </node>
+   <!-- for backward compatibility -->
+   <node pkg="nodelet" type="nodelet"
+         name="multisense_laser_relay"
+         args="load jsk_topic_tools/Relay multisense_laser_manager">
+     <remap from="~input" to="tilt_laser_listener/output_cloud" />
+     <remap from="~output" to="/full_cloud2" />
+   </node>
+   <!-- full_cloud2 -->
    <node pkg="laser_assembler" type="laser_scan_assembler"
          name="laser_scan_assembler_node"
          output="screen" >
-     <remap from="scan" to="/multisense/lidar_scan"/>
+     <remap from="scan" to="/multisense/lidar_scan_filtered"/>
      <param name="tf_cache_time_secs" value="20" />
      <param name="max_scans" type="int" value="1000" />
      <param name="fixed_frame" type="string" value="multisense/head_root"/>

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>jsk_tilt_laser</name>
-  <version>1.0.57</version>
+  <version>1.0.58</version>
   <description>The jsk_tilt_laser package</description>
 
   <maintainer email="youhei@jsk.imi.i.u-tokyo.ac.jp">YoheiKakiuchi</maintainer>
@@ -28,6 +28,8 @@
   <run_depend>dynamic_reconfigure</run_depend>
   <build_depend>sensor_msgs</build_depend>
   <run_depend>sensor_msgs</run_depend>
+  <build_depend>laser_filters</build_depend>
+  <run_depend>laser_filters</run_depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
   </export>

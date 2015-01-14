@@ -57,6 +57,9 @@
     uri: https://github.com/tork-a/rwt_ros.git
     local-name : rwt_ros
 - git:
+    uri: https://github.com/tork-a/roswww.git
+    local-name : roswww
+- git:
     uri: https://github.com/tork-a/visualization_rwt.git
     local-name: visualization_rwt
 
@@ -114,6 +117,11 @@
 - git:
    uri: https://github.com/RethinkRobotics/baxter_examples.git
    local-name: RethinkRobotics/baxter_examples
+
+# moveit
+- git:
+    uri: https://github.com/ros-planning/moveit_robots.git
+    local-name: ros-planning/moveit_robots
 
 # rviz stuff
 - git:

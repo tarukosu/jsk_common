@@ -2,6 +2,11 @@
 Changelog for package bayesian_belief_networks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.58 (2015-01-07)
+-------------------
+* check debian_version to see site/dist packages
+* Contributors: Kei Okada
+
 1.0.57 (2014-12-23)
 -------------------
 
