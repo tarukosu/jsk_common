@@ -1,0 +1,1 @@
+sensor_msgs/Image openni__rgb__image_raw
