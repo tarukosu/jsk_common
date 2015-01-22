@@ -23,16 +23,20 @@ class SilverHammerStreamer:
         self.send_port = rospy.get_param("~to_port", 16484)
         self.send_ip = rospy.get_param("~to_ip", "localhost")
         self.rate = rospy.get_param("~send_rate", 2)   #2Hz
+        self.throttle = rospy.get_param("~throttle", True)
         self.socket_client = socket(AF_INET, SOCK_DGRAM)
-        self.packet_size = rospy.get_param("~packet_size", 1000)   #2Hz
+        self.packet_size = rospy.get_param("~packet_size", 1024)   #2Hz
         subscriber_info = subscribersFromMessage(self.message_class())
         self.messages = {}
         self.subscribe(subscriber_info)
         self.counter = 0
-        self.send_timer = rospy.Timer(rospy.Duration(1.0 / self.rate),
-                                      self.sendTimerCallback)
+        if self.throttle:
+            self.send_timer = rospy.Timer(rospy.Duration(1.0 / self.rate),
+                                          self.sendTimerCallback)
         
     def sendTimerCallback(self, event):
+        self.sendTopic()
+    def sendTopic(self):
         buffer = StringIO()
         with self.lock:
             msg = self.message_class()
@@ -49,6 +53,9 @@ class SilverHammerStreamer:
         rospy.loginfo("sending %d packets", len(packets))
         for p in packets:
             self.socket_client.sendto(p.pack(), (self.send_ip, self.send_port))
+            # print self.send_ip
+            # print self.send_port
+            # rospy.loginfo("aa")
         self.counter = self.counter + 1
         if self.counter > 65535:
             self.counter = 0
@@ -60,6 +67,8 @@ class SilverHammerStreamer:
     def messageCallback(self, msg, topic):
         with self.lock:
             self.messages[topic] = msg
+        if not self.throttle:
+            self.sendTopic()
     def genMessageCallback(self, topic):
         return lambda msg: self.messageCallback(msg, topic)
 
