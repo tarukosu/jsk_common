@@ -46,9 +46,11 @@ public:
             ros::serialization::IStream istream(buf, msg->size());
             msg->write(ostream);
             ((uint32_t *)buf)[0] = last_seq_received + topic_received;
-            ros::Time tmp(last_time_received.toSec() + topic_received * rate.toSec());
+            //ros::Time tmp(last_time_received.toSec() + topic_received * rate.toSec());
+	    ros::Time tmp = event.current_real;
             ((uint32_t *)buf)[1] = tmp.sec;
             ((uint32_t *)buf)[2] = tmp.nsec;
+	    //std::cout << tmp.sec << std::endl;
             msg->read(istream);
         }
 	if(debug){
@@ -66,6 +68,8 @@ static ros::NodeHandle *g_node = NULL;
 
 static bool use_fixed_rate;
 static bool use_periodic_rate = false;
+
+
 
 
 
@@ -94,30 +98,37 @@ void in_cb(const boost::shared_ptr<ShapeShifter const>& msg,
         header.stamp.sec = ((uint32_t *)buf)[1];
         header.stamp.nsec = ((uint32_t *)buf)[2];
 
-        if ( abs((header.stamp - ros::Time::now()).toSec()) < 5.0 ) {
+	//ROS_INFO_STREAM(" this message contains headers.. seq =" <<  header.seq << " stamp = " << (header.stamp - ros::Time::now()).toSec());
+
+        //if ( abs((header.stamp - ros::Time::now()).toSec()) < 5.0 ) {
 	  if(debug){
 	    ROS_INFO_STREAM(" this message contains headers.. seq =" <<  header.seq << " stamp = " << header.stamp);
 	  }
             s->topic_with_header = true;
             s->last_seq_received = header.seq;
             s->last_time_received = header.stamp;
-        }
+	    //}
     }
     //g_node->createTimer(ros::Duration(0.1), [](const ros::TimerEvent event) { std::cerr << "hoge" << std::endl; });
     {// at first publish once
       ros::TimerEvent ev;
       s->publish (ev);
     }
-    s->timer = g_node->createTimer(s->rate, &pub_info_t::publish, s);
+    // s->timer = g_node->createTimer(s->rate, &pub_info_t::publish, s);
 }
 
-
-int main(int argc, char **argv)
+class topic_buffer_client
 {
-    ros::init(argc, argv, "topic_buffer_client", ros::init_options::AnonymousName);
+public:
+  ros::NodeHandle n;
+  bool use_service;
+  ros::ServiceClient sc_update;
+  ros::Publisher pub_update;
 
-    ros::NodeHandle n;
+
+  topic_buffer_client(){
     ros::NodeHandle nh("~");
+    sc_update = n.serviceClient<jsk_topic_tools::Update>(string("/update"), true);
 
     double fixed_rate = 0.1; // 10Hz
     if (nh.hasParam("fixed_rate")) {
@@ -146,6 +157,9 @@ int main(int argc, char **argv)
         ROS_INFO("use latched");
       }
     }
+    nh.param("use_service", use_service, true);
+
+    nh.param("debug", debug, false);
 
     g_node = &n;
     bool use_service_p = false;
@@ -204,20 +218,24 @@ int main(int argc, char **argv)
 
         g_pubs.push_back(pub_info);
     }
+    ros::Timer timer;
+    if (use_fixed_rate) {
+      timer = nh.createTimer(ros::Duration(fixed_rate), boost::bind( &topic_buffer_client::publish_topic, this, _1));
+
+      std::cout << "aaaaaaa" << fixed_rate << std::endl;
+      //ros::spin();
+    }
+    ros::Timer update_timer = nh.createTimer(ros::Duration(update_rate), boost::bind( &topic_buffer_client::send_update, this, _1));
+
 
     ros::Rate rate_loop(100);
     ros::Time last_updated;
 
-    bool use_service = true;
-    nh.param("use_service", use_service, true);
 
-    nh.param("debug", debug, false);
-    
-    ros::ServiceClient sc_update = n.serviceClient<jsk_topic_tools::Update>(string("/update"), true);
-    ros::Publisher pub_update;
     if (!use_service) {
         pub_update = n.advertise<std_msgs::String>("/update", 1);
     }
+    ros::spin();
 
     if (use_periodic_rate) {
       for (list<pub_info_ref>::iterator it = g_pubs.begin();
@@ -231,43 +249,66 @@ int main(int argc, char **argv)
         sc_update.call(req, res);
         ROS_INFO_STREAM("sending request for periodic rate publish  topic:" << req.topic_name << " rate:" << req.periodic_rate);
       }
+    
+      ros::spin();
     }
-    while ( ros::ok() ) {
 
-        if ( update_rate >= 0 && (ros::Time::now() - last_updated) > ros::Duration(update_rate) ) {
-            for (list<pub_info_ref>::iterator it = g_pubs.begin();
-                 it != g_pubs.end();
-                 ++it) {
+
+  }
+
+  void publish_topic(const ros::TimerEvent& event){
+    //std::cout << "aaaaaaaaaaaaaa"<< std::endl;
+    for (list<pub_info_ref>::iterator it = g_pubs.begin();
+	 it != g_pubs.end();
+	 ++it) {
+      (*it)->publish(event);
+    }
+  }
+
+  void send_update(const ros::TimerEvent& event){
+    //  std::cout << "aaaaaaa" << fixed_rate << std::endl;
+    //      if ( update_rate >= 0 && (ros::Time::now() - last_updated) > ros::Duration(update_rate) ) {
+    for (list<pub_info_ref>::iterator it = g_pubs.begin();
+	 it != g_pubs.end();
+	 ++it) {
                 
-                if (use_service) {
-                  jsk_topic_tools::Update::Request req;
-                  jsk_topic_tools::Update::Response res;
-                  req.topic_name = (*it)->topic_name;
-                  if ( sc_update.call(req, res) == false ) {
-                    ROS_ERROR_STREAM("calling /update (" << req.topic_name << ") fails, retry...");
-                    sc_update = n.serviceClient<jsk_topic_tools::Update>(string("/update"), true);
-                    continue;
-                  }
-                  (*it)->rate = ros::Duration(res.rate);
-                  if(debug){
-		    ROS_INFO_STREAM("calling /update " << req.topic_name << " .. " << res.rate);
-		  }
-                }
-                else {
-                  std_msgs::String msg;
-                  msg.data = (*it)->topic_name;
-                  pub_update.publish(msg);
-		  if(debug){
-		    ROS_INFO_STREAM("publishing /update " << msg.data);
-		  }
-                }
-            }
-            last_updated = ros::Time::now();
-        }
-
-        ros::spinOnce();
-        rate_loop.sleep();
+      if (use_service) {
+	jsk_topic_tools::Update::Request req;
+	jsk_topic_tools::Update::Response res;
+	req.topic_name = (*it)->topic_name;
+	if ( sc_update.call(req, res) == false ) {
+	  ROS_ERROR_STREAM("calling /update (" << req.topic_name << ") fails, retry...");
+	  sc_update = n.serviceClient<jsk_topic_tools::Update>(string("/update"), true);
+	  continue;
+	}
+	(*it)->rate = ros::Duration(res.rate);
+	if(debug){
+	  ROS_INFO_STREAM("calling /update " << req.topic_name << " .. " << res.rate);
+	}
+      }
+      else {
+	std_msgs::String msg;
+	msg.data = (*it)->topic_name;
+	//pub_update.publish(msg);
+	if(debug){
+	  ROS_INFO_STREAM("publishing /update " << msg.data);
+	}
+      }
     }
+    //            last_updated = ros::Time::now();
+    //        }
 
+    //       ros::spinOnce();
+    //        rate_loop.sleep();
+  }
+};
+
+
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "topic_buffer_client", ros::init_options::AnonymousName);
+    topic_buffer_client t = topic_buffer_client();
+    ros::spin();
     return 0;
 }
