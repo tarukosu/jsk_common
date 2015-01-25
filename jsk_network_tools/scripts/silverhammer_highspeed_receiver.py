@@ -31,7 +31,7 @@ class SilverHammerReceiver:
         self.publishers = publishersFromMessage(self.message_class, self.topic_prefix)
         self.socket_server = socket(AF_INET, SOCK_DGRAM)
         self.socket_server.bind((self.receive_ip, self.receive_port))
-        self.packet_size = rospy.get_param("~packet_size", 1000)   #2Hz
+        self.packet_size = rospy.get_param("~packet_size", 1024)   #2Hz
         self.packets = []
     def run(self):
         while not rospy.is_shutdown():
