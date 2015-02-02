@@ -33,6 +33,7 @@ public:
     bool latched;
     uint32_t last_seq_received;
     uint32_t topic_received;
+    bool updated;
 
     void publish(const ros::TimerEvent &event)
     {
@@ -76,6 +77,8 @@ static bool use_periodic_rate = false;
 void in_cb(const boost::shared_ptr<ShapeShifter const>& msg,
            boost::shared_ptr<pub_info_t> s)
 {
+    s->updated = true;
+
     using namespace boost::lambda;
 
     s->msg = boost::const_pointer_cast<ShapeShifter>(msg);
@@ -124,7 +127,8 @@ public:
   bool use_service;
   ros::ServiceClient sc_update;
   ros::Publisher pub_update;
-
+  bool publish_once;
+  bool updated;
 
   topic_buffer_client(){
     ros::NodeHandle nh("~");
@@ -158,6 +162,8 @@ public:
       }
     }
     nh.param("use_service", use_service, true);
+    nh.param("publish_once", publish_once, false);
+    updated = true;
 
     nh.param("debug", debug, false);
 
@@ -257,11 +263,30 @@ public:
   }
 
   void publish_topic(const ros::TimerEvent& event){
-    //std::cout << "aaaaaaaaaaaaaa"<< std::endl;
+    bool all_updated = true;
     for (list<pub_info_ref>::iterator it = g_pubs.begin();
 	 it != g_pubs.end();
 	 ++it) {
-      (*it)->publish(event);
+      if (!(*it) ->updated){
+	all_updated = false;
+      }
+    }
+    if (all_updated){
+      for (list<pub_info_ref>::iterator it = g_pubs.begin();
+	   it != g_pubs.end();
+	   ++it) {
+	(*it) ->updated = false;
+      }
+    }
+
+    
+    if(!publish_once || all_updated ){
+      //std::cout << "aaaaaaaaaaaaaa"<< std::endl;
+      for (list<pub_info_ref>::iterator it = g_pubs.begin();
+	   it != g_pubs.end();
+	   ++it) {
+	(*it)->publish(event);
+      }
     }
   }
 
