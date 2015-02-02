@@ -5,6 +5,7 @@ import rospy
 import sys
 from mm2client import *
 
+from std_msgs.msg import Int32
 from dynamic_reconfigure.server import Server as DynamicReconfigureServer
 from mini_maxwell.cfg import RosClientConfig as ConfigType
 
@@ -22,11 +23,12 @@ class MMClient():
 
         # Get parameter
         rospy.logwarn('[usage] rosrun mini_maxwell ros_client.py _ip:=[mini_maxwell ip or hostname] _round_trimp:=[round trip(ms)] _rate_limit:=[rate limit(bps)]')
-        self.mm2name = rospy.get_param('~ip', '192.168.0.5')
-        self.round_trip  = rospy.get_param('~round_trip', 100) #100ms
+        self.mm2name = rospy.get_param('~ip', '133.11.216.45')
+        self.round_trip  = rospy.get_param('~round_trip', 0) #100ms
         self.rate_limit = rospy.get_param('~rate_limit', 100000) #100kbps
         self.band_number = 5
         rospy.loginfo('mm2 hostname or ip = %s', self.mm2name)
+        rospy.Subscriber("/rate_limit", Int32, self.change_limit)
 
         # Create a dynamic reconfigure server.
         self.server = DynamicReconfigureServer(ConfigType, self.reconfigure)
@@ -39,6 +41,10 @@ class MMClient():
         # Return the new variables.
         self.updateMM()
         return config
+
+    def change_limit(self, msg):
+        self.rate_limit = msg.data;
+        self.updateMM()
 
     def updateMM(self):
         self.bnds.SetDelayAmount(self.band_number, True, self.round_trip)

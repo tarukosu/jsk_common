@@ -27,7 +27,7 @@ class MMSwitchingConnection(MMClient):
         rospy.set_param('~rate_limit', self.rate_limit_A)
         rospy.set_param('~round_trip', self.round_trip_A)
 
-        rospy.Timer(rospy.Duration(10), self.changeConnection)
+        rospy.Timer(rospy.Duration(60), self.changeConnection)
 
         MMClient.__init__(self)
 
